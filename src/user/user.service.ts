@@ -1,40 +1,36 @@
-import { InjectRepository } from '@nestjs/typeorm';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { User } from './schemas/user.schema';
 
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
-  ) {}
+  constructor(@InjectModel('User') private readonly userModel: Model<User>) {}
 
   create(createUserDto: CreateUserDto) {
     const user = new User();
     user.externalId = createUserDto.externalId;
-    return this.userRepository.save(user);
+    const newUser = new this.userModel(user);
+    return newUser.save();
   }
 
   findAll() {
-    return this.userRepository.find();
+    return this.userModel.find().exec();
   }
 
-  findOne(id: number) {
-    return this.userRepository.findOne({
-      where: { id },
-    });
+  findOne(id: string) {
+    return this.userModel.findById(id).exec();
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: string, updateUserDto: UpdateUserDto) {
     const user = new User();
-    user.id = id;
     user.externalId = updateUserDto.externalId;
-    return this.userRepository.save(user);
+    return this.userModel.findByIdAndUpdate(id, user, { new: true }).exec();
   }
 
-  remove(id: number) {
-    return this.userRepository.delete(id);
+  async remove(id: string) {
+    return await this.userModel.findByIdAndDelete(id).exec();
   }
 }
